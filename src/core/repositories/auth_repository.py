@@ -1,7 +1,7 @@
 from typing import List
 from abc import ABC, abstractmethod
 
-from core.entities.auth_models import BannedRefreshToken, User
+from core.entities.auth_entity import BannedRefreshToken, User
 
 
 class IUserRepository(ABC):

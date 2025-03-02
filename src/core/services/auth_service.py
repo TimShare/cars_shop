@@ -6,7 +6,7 @@ import jwt
 
 
 from core.repositories import IUserRepository, IBannedRefreshTokenRepository
-from core.entities.auth_models import BannedRefreshToken, Token, User
+from core.entities.auth_entity import BannedRefreshToken, Token, User
 from core.exceptions import (
     AlreadyExists,
     InvalidGrantError,

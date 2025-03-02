@@ -1,3 +1,3 @@
 from .auth_repository import IUserRepository, IBannedRefreshTokenRepository
-
-__all__ = ["IUserRepository", "IBannedRefreshTokenRepository"]
+from .cars_repository import ICarsRepository, IImageRepository
+__all__ = ["IUserRepository", "IBannedRefreshTokenRepository", "ICarsRepository", "IImageRepository"]

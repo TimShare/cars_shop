@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.exceptions import NotFoundError, DuplicateEntryError
 from core.repositories import IBannedRefreshTokenRepository
-from core.entities.auth_models import Profile
-from core.entities.auth_models import User as UserEntity
+from core.entities.auth_entity import Profile
+from core.entities.auth_entity import User as UserEntity
 from core.repositories.auth_repository import IProfileRepository, IUserRepository
 from core.entities import Token
 from infrastructure.models import User as UserModel
