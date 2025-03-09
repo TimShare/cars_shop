@@ -10,7 +10,8 @@ from core.repositories import IBannedRefreshTokenRepository
 from core.entities.auth_entity import Profile
 from core.entities.auth_entity import User as UserEntity
 from core.repositories.auth_repository import IProfileRepository, IUserRepository
-from core.entities import Token
+from core.entities import BannedRefreshToken as BannedRefreshTokenEntity
+from infrastructure.models import BannedRefreshToken as BannedRefreshTokenModel
 from infrastructure.models import User as UserModel
 
 
@@ -19,11 +20,34 @@ class TokenRepository(IBannedRefreshTokenRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get(self, **filters) -> Token | None:
-        pass
+    async def get(self, **filters) -> BannedRefreshTokenEntity | None:
+        stmt = select(BannedRefreshTokenModel).filter_by(**filters)
+        token = await self.db.execute(stmt)
+        token = token.scalars().first()
+        if not token:
+            return None
+        return BannedRefreshTokenEntity(
+            jti=token.jti,
+            id=token.id,
+            created_at=token.created_at,
+        )
 
-    async def create(self, data: Token) -> Token:
-        pass
+    async def create(self, jti: str) -> BannedRefreshTokenEntity:
+        token_model = BannedRefreshTokenModel(
+            jti=jti,
+        )
+
+        self.db.add(token_model)
+        await self.db.commit()
+        await self.db.refresh(token_model)
+
+        token_entity = BannedRefreshTokenEntity(
+            jti=token_model.jti,
+            id=token_model.id,
+            created_at=token_model.created_at,
+        )
+
+        return token_entity
 
 
 class UserRepository(IUserRepository):

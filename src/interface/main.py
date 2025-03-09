@@ -19,8 +19,6 @@ async def lifespan(app: FastAPI):
     yield
 
 
-templates = Jinja2Templates(directory="templates")  # Убедитесь, что путь правильный
-
 app = FastAPI(
     title=config.project_name,
     docs_url="/docs",
@@ -31,5 +29,4 @@ app = FastAPI(
     lifespan=lifespan,
     debug=config.is_debug_mode,
 )
-app.include_router(auth_api.router)
-app.state.templates = templates
+app.include_router(auth_api)

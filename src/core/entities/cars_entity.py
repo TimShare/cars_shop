@@ -6,7 +6,6 @@ from datetime import datetime
 
 @dataclass
 class Car:
-    id: UUID = field(default_factory=uuid4)
     make: str  # Марка (e.g., "Toyota")
     model: str  # Модель (e.g., "Camry")
     year: int  # Год выпуска
@@ -19,19 +18,24 @@ class Car:
     color: str  # Цвет
     description: Optional[str] = None  # Описание (опционально)
     condition: str = "Used"  # Состояние ("New", "Used", "Certified Pre-Owned")
-    vin: Optional[str] = None # VIN
-    features: List[str] = field(default_factory=list)  # Список особенностей/опций (e.g., "ABS", "Airbags", "Navigation", "Sunroof")
-    images: List["Image"] = field(default_factory=list)  # Список изображений (связь с другой сущностью)
+    vin: Optional[str] = None  # VIN
+    features: List[str] = field(
+        default_factory=list
+    )  # Список особенностей/опций (e.g., "ABS", "Airbags", "Navigation", "Sunroof")
+    images: List["Image"] = field(
+        default_factory=list
+    )  # Список изображений (связь с другой сущностью)
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
+    id: UUID = field(default_factory=uuid4)
 
 
 @dataclass
 class Image:  # Отдельная сущность для изображений
-    id: UUID = field(default_factory=uuid4)
     car_id: UUID  # Ссылка на Car, к которому относится изображение
     url: str  # URL изображения (или путь к файлу)
     description: Optional[str] = None  # Описание изображения (опционально)
-    is_main: bool = False # главное ли фото
+    is_main: bool = False  # главное ли фото
     created_at: datetime = field(default_factory=datetime.now)
     uploaded_at: datetime = field(default_factory=datetime.now)
+    id: UUID = field(default_factory=uuid4)

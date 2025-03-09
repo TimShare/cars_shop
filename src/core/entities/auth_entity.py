@@ -38,9 +38,9 @@ class BannedRefreshToken:
 
 @dataclass
 class Token:
-    access_token: str
-    refresh_token: str
     token_type: str
-    access_token_expires: datetime 
+    access_token_expires: datetime
     refresh_token_expires: datetime
     scopes: List[str] = field(default_factory=list)
+    access_token: str | None = None
+    refresh_token: str | None = None

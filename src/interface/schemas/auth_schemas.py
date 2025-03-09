@@ -76,42 +76,19 @@ class BannedRefreshTokenResponse(BaseModel):
         from_attributes = True
 
 
-class Token(BaseModel):
+class Token(BaseModel):  # for service
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"  # make it default
+    token_type: str
     access_token_expires: datetime
     refresh_token_expires: datetime
     scopes: List[str] = Field(default_factory=list)
 
 
-class TokenData(BaseModel):  # For internal use when verifying tokens
-    username: str | None = None
-    scopes: list[str] = []
-
-
-class TokenResponse(BaseModel):  # Added a TokenResponse for /token endpoint
-    access_token: str
+class TokenResponse(BaseModel):  # new
+    access_token: str | None = None
     token_type: str
-    refresh_token: str
-    scopes: List[str] = Field(default_factory=list)
-
-
-class ScopeRequest(BaseModel):  # new
-    scopes: List[str] = Field(default_factory=list)
-
-
-class AuthorizationCodeRequest(BaseModel):  # For /authorize (GET)
-    response_type: str  # Must be "code"
-    client_id: str
-    redirect_uri: str
-    scope: Optional[str] = None  # Space-separated string
-    state: Optional[str] = None
-
-
-class TokenRequest(BaseModel):  # For /token (POST)
-    grant_type: str  # Must be "authorization_code"
-    code: str
-    redirect_uri: str
-    client_id: str
-    client_secret: Optional[str] = None  # Optional, for confidential clients
+    refresh_token: str | None = None
+    scopes: List[str]
+    access_token_expires: datetime
+    refresh_token_expires: datetime

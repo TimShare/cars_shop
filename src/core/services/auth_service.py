@@ -4,7 +4,6 @@ from uuid import UUID, uuid4
 
 import jwt
 
-
 from core.repositories import IUserRepository, IBannedRefreshTokenRepository
 from core.entities.auth_entity import BannedRefreshToken, Token, User
 from core.exceptions import (
@@ -18,7 +17,7 @@ from passlib.context import CryptContext
 
 from settings import get_settings
 
-settings = get_settings()
+config = get_settings()
 
 
 class AuthService:
@@ -28,82 +27,43 @@ class AuthService:
         self.user_repo = user_repo
         self.token_repo = token_repo
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        # self.oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token") # remove, not needed
 
-    async def login(self, email: str, password: str) -> User | None:
-        """
-        Login user.  This method is ONLY for /authorize and NOT for /token.
-        """
+    async def register(self, email: str, password: str) -> User:
+        existing_user = await self.user_repo.get(email=email)
+        if existing_user:
+            raise AlreadyExists()
+        hashed_password = self.pwd_context.hash(password)
+        new_user = User(email=email, hashed_password=hashed_password)
+        created_user = await self.user_repo.create(new_user)
+        return created_user
+
+    async def login(self, email: str, password: str, scopes: List[str] = None) -> Token:
         user = await self.user_repo.get(email=email)
         if not user:
-            raise NotFoundError("User not found")
+            raise NotFoundError(
+                "Incorrect email or password"
+            )  #  Более информативное сообщение
         if not self.verify_password(password, user.hashed_password):
-            raise InvalidCredentials("Invalid credentials")
-        return user
+            raise InvalidCredentials("Incorrect email or password")
 
-    async def exchange_code_for_token(
-        self, code: str, client_id: str, redirect_uri: str, client_secret: str = None
-    ) -> Token:
-        """Exchanges an authorization code for an access token and refresh token."""
-
-        # 1. Verify the code
-        try:
-            payload = jwt.decode(
-                code, settings.secret_key, algorithms=[settings.algorithm]
-            )
-            code_type = payload.get("type")
-            if code_type != "authorization_code":
-                raise InvalidGrantError("Invalid code type")
-
-            user_id: str = payload.get("sub")
-            stored_client_id: str = payload.get("client_id")
-            stored_redirect_uri: str = payload.get("redirect_uri")
-            # You might also have a 'jti' to check for code replay
-
-            if (
-                not user_id
-                or stored_client_id != client_id
-                or stored_redirect_uri != redirect_uri
-            ):
-                raise InvalidGrantError("Invalid authorization code")
-
-        except jwt.PyJWTError:
-            raise InvalidGrantError("Invalid authorization code")
-
-        # 2. Get the user
-        user = await self.user_repo.get_by_id(UUID(user_id))  # Convert to UUID
-        if user is None:
-            raise InvalidGrantError(
-                "User not found"
-            )  # Should not be possible, but good to check.
-
-        # 3.  (Optional, for confidential clients) Verify client_secret
-        #     You would typically have a separate repository/service to manage clients.
-        #     if client_secret:  # Simplified example
-        #         if not self.verify_client_secret(client_id, client_secret):
-        #             raise UnauthorizedClientError()
-
-        # 4. Generate tokens
-        scopes = payload.get("scopes", [])  # get scopes from auth code
-        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
-        refresh_token_expires = timedelta(days=settings.refresh_token_expire_days)
+        access_token_expires = timedelta(minutes=config.access_token_expire)
+        refresh_token_expires = timedelta(days=config.refresh_token_expire)
         access_token = self.create_access_token(
-            data={"sub": str(user.id), "scopes": scopes},
+            data={"sub": str(user.id), "scopes": scopes or []},
             expires_delta=access_token_expires,
         )
         refresh_token = self.create_refresh_token(
-            data={"sub": str(user.id), "scopes": scopes},
+            data={"sub": str(user.id), "scopes": scopes or []},
             expires_delta=refresh_token_expires,
         )
 
-        # 5. Return the tokens
         return Token(
             access_token=access_token,
             refresh_token=refresh_token,
             token_type="bearer",
             access_token_expires=datetime.utcnow() + access_token_expires,
             refresh_token_expires=datetime.utcnow() + refresh_token_expires,
-            scopes=scopes,
+            scopes=scopes or [],
         )
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
@@ -116,12 +76,10 @@ class AuthService:
         if expires_delta:
             expire = datetime.utcnow() + expires_delta
         else:
-            expire = datetime.utcnow() + timedelta(
-                minutes=settings.access_token_expire_minutes
-            )
+            expire = datetime.utcnow() + timedelta(minutes=config.access_token_expire)
         to_encode.update({"exp": expire, "type": "access"})
         encoded_jwt = jwt.encode(
-            to_encode, settings.secret_key, algorithm=settings.algorithm
+            to_encode, config.secret_key, algorithm=config.algorithm
         )
         return encoded_jwt
 
@@ -132,70 +90,44 @@ class AuthService:
         if expires_delta:
             expire = datetime.utcnow() + expires_delta
         else:
-            expire = datetime.utcnow() + timedelta(
-                days=settings.refresh_token_expire_days
-            )
-        to_encode.update({"exp": expire, "type": "refresh"})
-        jti = str(uuid4())
-        to_encode.update({"jti": jti})
+            expire = datetime.utcnow() + timedelta(days=config.refresh_token_expire)
+        to_encode.update({"exp": expire, "type": "refresh", "jti": str(uuid4())})
         encoded_jwt = jwt.encode(
-            to_encode, settings.secret_key, algorithm=settings.algorithm
+            to_encode, config.secret_key, algorithm=config.algorithm
         )
         return encoded_jwt
 
-    def create_authorization_code(
-        self, client_id: str, redirect_uri: str, user_id: UUID, scopes: List[str]
-    ) -> str:
-        """Creates an authorization code."""
-
-        data = {
-            "sub": str(user_id),
-            "client_id": client_id,
-            "redirect_uri": redirect_uri,
-            "scopes": scopes,
-            "type": "authorization_code",
-            # You might also add a 'jti' for the authorization code
-        }
-        # Authorization codes should have a short lifespan (e.g., 10 minutes)
-        expires_delta = timedelta(minutes=10)
-        return self.create_access_token(
-            data, expires_delta
-        )  # Re-use create_access_token for simplicity
-
-    async def get_current_user(self, token: str) -> User | None:
+    async def verify_access_token(self, token: str) -> Optional[User]:
         try:
             payload = jwt.decode(
-                token, settings.secret_key, algorithms=[settings.algorithm]
+                token, config.secret_key, algorithms=[config.algorithm]
             )
+            if payload.get("type") != "access":  # Важно проверять тип токена
+                return None
             user_id: str = payload.get("sub")
             if user_id is None:
-                raise InvalidCredentials()
+                return None
             jti: str = payload.get("jti")
+            if jti and await self.token_repo.get(jti=jti):
+                return None
 
-            if jti and await self.token_repo.is_banned(jti):
-                raise InvalidTokenError("Token has been revoked")
-
-            user = await self.user_repo.get_by_id(UUID(user_id))
-            if user is None:
-                raise NotFoundError()
+            user = await self.user_repo.get(user_id=UUID(user_id))
             return user
-
         except jwt.PyJWTError:
-            raise InvalidTokenError()
+            return None
 
     async def logout(self, token: str):
+        """Invalidates the refresh token (adds its JTI to the banned tokens list)."""
         try:
             payload = jwt.decode(
-                token, settings.secret_key, algorithms=[settings.algorithm]
+                token, config.secret_key, algorithms=[config.algorithm]
             )
+            print(payload)
             jti: str = payload.get("jti")
             if jti:
-                await self.token_repo.add(jti)
+                await self.token_repo.create(jti)
         except jwt.PyJWTError:
             raise InvalidTokenError()
-
-    async def get_user_by_id(self, user_id: UUID) -> User | None:
-        return await self.user_repo.get_by_id(user_id)
 
 
 class BannedTokensService:
