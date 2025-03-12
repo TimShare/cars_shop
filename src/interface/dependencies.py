@@ -9,20 +9,26 @@ from infrastructure.postgres_db import database
 from infrastructure.repositories import UserRepository
 from infrastructure.repositories import TokenRepository
 
+from core.services import CarService
+from infrastructure.repositories import CarRepository
 
-async def get_user_service(
-    session: AsyncSession = Depends(database.get_db_session),
-):
+
+async def get_user_service(session: AsyncSession = Depends(database.get_db_session)):
     logging.warning(session)
     user_repository = UserRepository(session)
     service = UserService(user_repository)
     yield service
 
 
-async def get_auth_service(
-    session: AsyncSession = Depends(database.get_db_session),
-):
+async def get_auth_service(session: AsyncSession = Depends(database.get_db_session)):
     user_repository = UserRepository(session)
     token_repository = TokenRepository(session)
     service = AuthService(user_repository, token_repository)
     yield service
+
+
+async def get_car_service(session: AsyncSession = Depends(database.get_db_session)):
+    car_repository = CarRepository(session)
+    service = CarService(car_repository)
+    yield service
+ 

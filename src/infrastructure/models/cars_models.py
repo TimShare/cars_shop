@@ -3,10 +3,9 @@ from uuid import uuid4
 from sqlalchemy import Integer, String, Float, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship, mapped_column, Mapped
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.declarative import declarative_base
-from infrastructure.models.base_model import BaseModelMixin
 
-Base = declarative_base()
+from infrastructure.postgres_db import Base
+from infrastructure.models.base_model import BaseModelMixin
 
 
 class CarModel(Base, BaseModelMixin):

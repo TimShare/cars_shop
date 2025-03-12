@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from ..entities import Car, Image
 
 
-class ICarsRepository(ABC):
+class ICarRepository(ABC):
     @abstractmethod
     def get(self, *args, **kwargs) -> Car | None:
         pass

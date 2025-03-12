@@ -2,9 +2,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
-from fastapi.templating import Jinja2Templates
 
 from interface.routers import auth_api
+from interface.routers import cars_api
 from settings import get_settings
 from utils.logger import get_logger
 
@@ -30,3 +30,4 @@ app = FastAPI(
     debug=config.is_debug_mode,
 )
 app.include_router(auth_api)
+app.include_router(cars_api)
