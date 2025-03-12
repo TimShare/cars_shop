@@ -50,13 +50,14 @@ async def login_for_access_token(
         token = await auth_service.login(
             form_data.username, form_data.password, form_data.scopes
         )
-
+        print(token.access_token_expires)
         response.set_cookie(
             key="access_token",
             value=token.access_token,
             httponly=True,
             secure=True if not config.is_debug_mode else False,
             samesite="lax",
+            expires=token.access_token_expires,
         )
         response.set_cookie(
             key="refresh_token",
@@ -64,6 +65,7 @@ async def login_for_access_token(
             httponly=True,
             secure=True if not config.is_debug_mode else False,
             samesite="lax",
+            expires=token.refresh_token_expires,
         )
 
         return TokenResponse(
@@ -90,5 +92,3 @@ async def logout(
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     return {"message": "Successfully logged out"}
-
-

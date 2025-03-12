@@ -24,8 +24,10 @@ class Settings(BaseSettings):
 
     secret_key: str = Field(os.environ.get("SECRET_KEY"))
     algorithm: str = Field(os.environ.get("ALGORITHM"))
-    access_token_expire: int = Field(os.environ.get("ACCESS_TOKEN_EXPIRE"))
-    refresh_token_expire: int = Field(os.environ.get("REFRESH_TOKEN_EXPIRE"))
+    access_token_expire_minutes: int = Field(
+        os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES")
+    )
+    refresh_token_expire_days: int = Field(os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS"))
 
     @property
     def database_url(self) -> Optional[PostgresDsn]:

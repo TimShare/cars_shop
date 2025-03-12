@@ -2,18 +2,22 @@ from pydantic import BaseModel, HttpUrl, UUID4, validator
 from typing import List, Optional
 from datetime import datetime
 
+
 class ImageBase(BaseModel):
     url: str  #  Может быть HttpUrl, если вы хотите валидировать URL
     description: Optional[str] = None
     is_main: bool = False
 
+
 class ImageCreate(ImageBase):
     car_id: UUID4  #  Нужен при создании
+
 
 class ImageUpdate(ImageBase):
     url: Optional[str] = None
     description: Optional[str] = None
     is_main: Optional[bool] = None
+
 
 class ImageResponse(ImageBase):
     id: UUID4
@@ -22,7 +26,8 @@ class ImageResponse(ImageBase):
     uploaded_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
 
 class CarBase(BaseModel):
     make: str
@@ -40,8 +45,10 @@ class CarBase(BaseModel):
     vin: Optional[str] = None
     features: List[str] = []
 
+
 class CarCreate(CarBase):
-    pass # Features are optional
+    pass  # Features are optional
+
 
 class CarUpdate(CarBase):
     make: Optional[str] = None
@@ -59,11 +66,12 @@ class CarUpdate(CarBase):
     vin: Optional[str] = None
     features: Optional[List[str]] = None
 
+
 class CarResponse(CarBase):
     id: UUID4
-    images: List[ImageResponse] = [] # Include images in the response
+    images: List[ImageResponse] = []  # Include images in the response
     created_at: datetime
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
